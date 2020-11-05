@@ -57,15 +57,6 @@ spec:
         }
       }
     }
-    stage('Test') {
-      steps {
-        container('go') {
-          sh """
-           #aws eks --region ap-south-1 update-kubeconfig --name cloudfront
-          """
-        }
-      }
-    }
     stage('Build and push image with Container Builder') {
       steps {
         container('gcloud') {
