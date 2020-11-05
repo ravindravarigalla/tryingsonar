@@ -57,7 +57,7 @@ spec:
       steps {
         withSonarQubeEnv('sonar') {
           sh """
-             sonar-scanner \
+             sonar \
               -Dsonar.projectKey=testing \
               -Dsonar.sources=. \
               -Dsonar.host.url=http://35.239.36.86:9000 \
