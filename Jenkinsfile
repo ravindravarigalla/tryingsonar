@@ -36,7 +36,7 @@ pipeline {
       steps {
         withSonarQubeEnv('sonar') {
           sh '''
-             sonar-scanner  \              
+              sonar-scanner \
                -Dsonar.projectKey=frontend \
                -Dsonar.sources=. \
                -Dsonar.host.url=http://35.239.36.86:9000 \
