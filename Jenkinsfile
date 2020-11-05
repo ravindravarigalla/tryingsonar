@@ -44,6 +44,19 @@ spec:
 }
   }
   stages {
+    stage ('SAST') {
+      steps {
+        withSonarQubeEnv('sonar') {
+          sh """
+             sonar-scanner \
+              -Dsonar.projectKey=testing \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=http://35.239.36.86:9000 \
+              -Dsonar.login=10a603f6f4ac9eca1c7d03943057ced680a299b2
+          sh 'cat target/sonar/report-task.txt'
+        }
+      }
+    }
     stage('Test') {
       steps {
         container('go') {
