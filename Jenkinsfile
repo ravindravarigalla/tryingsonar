@@ -24,7 +24,7 @@ spec:
   # Use service account that can deploy to all namespaces
   
   containers:
-  - name: golang
+  - name: go
     image: golang:1.15-alpine
     command:
     - cat
@@ -46,7 +46,7 @@ spec:
   stages {
     stage('Test') {
       steps {
-        container('golang') {
+        container('go') {
           sh """
            #aws eks --region ap-south-1 update-kubeconfig --name cloudfront
           """
