@@ -41,6 +41,7 @@ pipeline {
                -Dsonar.sources=. \
                -Dsonar.host.url=http://35.239.36.86:9000 \
                -Dsonar.login=testing
+               '''
           sh 'cat target/sonar/report-task.txt'
         }
       }
