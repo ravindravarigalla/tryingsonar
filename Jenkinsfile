@@ -57,6 +57,7 @@ spec:
         }
       }
     }
+  }  
     stage('Build and push image with Container Builder') {
       steps {
         container('gcloud') {
