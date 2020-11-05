@@ -11,6 +11,9 @@ pipeline {
   }
 
   agent {
+  tools {
+    go 'go'
+  }  
     kubernetes {
       
       defaultContainer 'jnlp'
