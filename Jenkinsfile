@@ -1,97 +1,73 @@
 pipeline {
-
-  environment {
-    PROJECT = "	still-smithy-279711"
-    APP_NAME = "sample"
-    FE_SVC_NAME = "${APP_NAME}"
-    CLUSTER = "cluster-1"
-    CLUSTER_ZONE = "us-central1-c"
-    IMAGE_TAG = "gcr.io/${PROJECT}/${APP_NAME}:latest"
-    JENKINS_CRED = "${PROJECT}"
-  }
-
-  agent {
+  agent any 
   tools {
     go 'go'
-  }  
-    kubernetes {
-      
-      defaultContainer 'jnlp'
-      yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-labels:
-  component: ci
-spec:
-  # Use service account that can deploy to all namespaces
-  
-  containers:
-  - name: aws
-    image: amazon/aws-cli:latest
-    command:
-    - cat
-    tty: true
-  - name: gcloud
-    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
-    command:
-    - cat
-    tty: true
-  - name: helm
-    image: nginx
-    command:
-    - cat
-    tty: true
-    
-"""
-}
   }
   stages {
-    stage('Test') {
+    stage ('Initialize') {
       steps {
-        container('aws') {
-          sh """
-           #aws eks --region ap-south-1 update-kubeconfig --name cloudfront
-          """
-        }
+        sh '''
+                 # echo "PATH = ${PATH}"
+                 # echo "M2_HOME = ${M2_HOME}"
+            ''' 
       }
     }
-     stage ('SAST') {
+    
+    stage ('Check-Git-Secrets') {
+      steps {
+        sh '#rm trufflehog || true'
+        sh '#docker run gesellix/trufflehog --json https://github.com/cehkunal/webapp.git > trufflehog'
+        sh '#cat trufflehog'
+      }
+    }
+    
+    stage ('Source Composition Analysis') {
+      steps {
+         sh '#rm owasp* || true'
+         sh '#wget "https://raw.githubusercontent.com/cehkunal/webapp/master/owasp-dependency-check.sh" '
+         sh '#chmod +x owasp-dependency-check.sh'
+         sh '#bash owasp-dependency-check.sh'
+         sh '#cat /var/lib/jenkins/OWASP-Dependency-Check/reports/dependency-check-report.xml'
+        
+      }
+    }
+    
+    stage ('SAST') {
       steps {
         withSonarQubeEnv('sonar') {
           sh """
-             sonar \
-              -Dsonar.projectKey=testing \
+             sonar-scanner \
+              -Dsonar.projectKey=frontend \
               -Dsonar.sources=. \
               -Dsonar.host.url=http://35.239.36.86:9000 \
-              -Dsonar.login=10a603f6f4ac9eca1c7d03943057ced680a299b2
-             """
+              -Dsonar.login=testing 
           sh 'cat target/sonar/report-task.txt'
         }
       }
     }
-    stage('Build and push image with Container Builder') {
+    
+    stage ('Build') {
       steps {
-        container('gcloud') {
-          sh "#gcloud auth list"
-          sh "PYTHONUNBUFFERED=1 gcloud builds submit -t  us.gcr.io/my-project-suri-279708/go . "
-          sh "#gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project still-smithy-279711"
+      sh '#mvn clean package'
+       }
+    }
+    
+    stage ('Deploy-To-Tomcat') {
+            steps {
+           sshagent(['tomcat']) {
+                sh '#scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.232.202.25:/prod/apache-tomcat-8.5.39/webapps/webapp.war'
+              }      
+           }       
+    }
+    
+    
+    stage ('DAST') {
+      steps {
+        sshagent(['zap']) {
+         sh '#ssh -o  StrictHostKeyChecking=no ubuntu@13.232.158.44 "docker run -t owasp/zap2docker-stable zap-baseline.py -t http://13.232.202.25:8080/webapp/" || true'
         }
       }
     }
-    stage('Deploy ') {
-      steps {
-        container('helm') {
-          sh """
-          #helm ls
-          #aws eks --region us-east-2 update-kubeconfig --name cloudfront
-          #helm repo add stable https://charts.helm.sh/stable 
-          #helm repo update 
-          #helm install nginx nginx/ -n test
-          """ 
-        }
-      }
-    }
+    
   }
 }
-
