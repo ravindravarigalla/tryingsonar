@@ -35,7 +35,7 @@ spec:
     - cat
     tty: true
   - name: helm
-    image: nginx
+    image: 479022012441.dkr.ecr.ap-south-1.amazonaws.com/new:latest
     command:
     - cat
     tty: true
@@ -44,24 +44,33 @@ spec:
 }
   }
   stages {
+    stage('Test') {
+      steps {
+        container('aws') {
+          sh """
+           #aws eks --region ap-south-1 update-kubeconfig --name cloudfront
+          """
+        }
+      }
+    }
      stage ('SAST') {
       steps {
         withSonarQubeEnv('sonar') {
           sh """
              sonar-scanner \
-               -Dsonar.projectKey=testing \
-               -Dsonar.sources=. \
-               -Dsonar.host.url=http://35.239.36.86:9000 \
-               -Dsonar.login=10a603f6f4ac9eca1c7d03943057ced680a299b2
+              -Dsonar.projectKey=testing \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=http://35.239.36.86:9000 \
+              -Dsonar.login=10a603f6f4ac9eca1c7d03943057ced680a299b2
+             """
           sh 'cat target/sonar/report-task.txt'
         }
       }
     }
-  }
     stage('Build and push image with Container Builder') {
       steps {
         container('gcloud') {
-          sh "gcloud auth list"
+          sh "#gcloud auth list"
           sh "PYTHONUNBUFFERED=1 gcloud builds submit -t  us.gcr.io/my-project-suri-279708/go . "
           sh "#gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project still-smithy-279711"
         }
@@ -82,3 +91,4 @@ spec:
     }
   }
 }
+
